@@ -1,0 +1,4 @@
+time,scrape_duration_seconds,scrape_samples_post_metric_relabeling,scrape_samples_scraped,scrape_series_added,up
+1.606942326353E9,2.3074448,0,0,0,0
+1.606942566353E9,2.3106465,0,0,0,0
+1.606943271353E9,2.3049162,0,0,0,0
