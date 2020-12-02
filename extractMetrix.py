@@ -1,7 +1,4 @@
 from pyspark.sql import SparkSession
-import requests
-import os
-from time import sleep
 import prometheus_api_client as pac
 import pyspark
 
