@@ -140,7 +140,6 @@ df = spark \
 #         StructField("scrape_series_added", StringType()),
 #         StructField("up", StringType())
 #         ])
-
 json_df = df.withColumn("jsonData", from_json(col("value"), schema)).select("jsondata.*")
 
 json_df.writeStream.format('console').outputMode('append').start().awaitTermination()

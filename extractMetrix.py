@@ -47,7 +47,8 @@ def dataframe_creation():
 
             # create new dataframe or if exists merge new columns to it
             if dataframe is None:
-                dataframe = spark.createDataFrame(values, ['time', metric_name])
+                dataframe = spark.createDataFrame(values, ['time', etric_name])
+
             else:
                 df = spark.createDataFrame(values, ['time', metric_name])
                 dataframe = dataframe.join(df, 'time', 'right')
