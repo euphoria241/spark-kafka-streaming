@@ -31,7 +31,6 @@ def dataframe_creation():
 
     # loop through all metric names
     for metric_name in metric_names:
-        
         # request metric values
         metric_data = prometheus_connection.get_metric_range_data(
             metric_name,
