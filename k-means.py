@@ -50,7 +50,7 @@ def search_opt_k(df_kmeans):
     ax.set_xlabel('k')
     ax.set_ylabel('cost')
     plt.show()
-# search_opt_k(df_kmeans)
+search_opt_k(df_kmeans)
 
 def clustering(df_kmeans, n):
     kmeans = BisectingKMeans().setK(n).setSeed(1).setFeaturesCol("features")
