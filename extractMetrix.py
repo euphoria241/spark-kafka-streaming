@@ -102,6 +102,13 @@ def clean_dataframe(df):
                 k.add(column2)
     df = df.drop(*k)
 
+    # меняем значение Null на стреднее по столбцу
+    print("Последние штрихи, меняем Null на Mean по столбцу")
+    fill_values = {column: df.agg({column:"mean"}).rdd.flatMap(list).collect()[0] for column in df.columns}
+    df = df.na.fill(fill_values)
+    print("Все прям космос, глянь какой классный dataframe")
+    df.show()
+
     # Преобразуем все данные в float
     for col in df.columns:
         df = df.withColumn(col, df[col].cast('float'))
@@ -111,10 +118,19 @@ def clean_dataframe(df):
     return df
 
 # Создает Dataframe из Prometheus
-df = dataframe_creation()
+# df = dataframe_creation()
 
-# Очищает DataFrame для K-means
-df = clean_dataframe(df)
+
+# spark = pyspark.sql.SparkSession.builder \
+#     .master("local") \
+#     .appName("extract-metrics") \
+#     .getOrCreate()
+#
+# # загружаем метрки из csv
+# df = spark.read.format("csv").option("header", "true").option("inferSchema", "true").load("output.csv/")
+# df = clean_dataframe(df)
+# df.toPandas().to_csv("cleanDataFrame.csv")
+
 
 
 
