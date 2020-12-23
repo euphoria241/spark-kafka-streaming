@@ -1,6 +1,9 @@
 from pyspark.sql.session import SparkSession
 from pyspark.sql.functions import explode, split, from_json, col
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType
+from pyspark.sql.types import StructType, StructField, StringType, FloatType, IntegerType
+from pyspark.ml.feature import VectorAssembler
+
+
 
 spark = SparkSession \
         .builder \
@@ -9,138 +12,76 @@ spark = SparkSession \
 # set log level to remove WARNS from cmd
 spark.sparkContext.setLogLevel("ERROR")
 
-df = spark \
-        .readStream \
-        .format("kafka") \
-        .option("kafka.bootstrap.servers", "localhost:9092") \
-        .option("subscribe", "spark-topic") \
-        .load()\
-        .selectExpr("CAST(value AS STRING)")
 
+df = spark \
+    .readStream \
+    .format("kafka") \
+    .option("kafka.bootstrap.servers", "localhost:9092") \
+    .option("subscribe", "spark-topic") \
+    .load()\
+    .selectExpr("CAST(value AS STRING)")
+
+#разобраться с метриками
 # TODO: get schema of data from historical data!
-# schema = StructType([
-#         StructField("timestamp", StringType()),
-#         StructField("java_lang_ClassLoading_LoadedClassCount", IntegerType()),
-#         StructField("java_lang_ClassLoading_TotalLoadedClassCount", IntegerType()),
-#         StructField("java_lang_ClassLoading_UnloadedClassCount", IntegerType()),
-#         StructField("java_lang_ClassLoading_Verbose", IntegerType()),
-#         StructField("java_lang_Compilation_CompilationTimeMonitoringSupported", StringType()),
-#         StructField("java_lang_Compilation_TotalCompilationTime", StringType()),
-#         StructField("java_lang_GarbageCollector_CollectionCount", StringType()),
-#         StructField("java_lang_GarbageCollector_CollectionTime", StringType()),
-#         StructField("java_lang_GarbageCollector_LastGcInfo_GcThreadCount", StringType()),
-#         StructField("java_lang_GarbageCollector_LastGcInfo_duration':", StringType()),
-#         StructField("java_lang_GarbageCollector_LastGcInfo_endTime", StringType()),
-#         StructField("java_lang_GarbageCollector_LastGcInfo_id", StringType()),
-#         StructField("java_lang_GarbageCollector_LastGcInfo_memoryUsageAfterGc_committed", StringType()),
-#         StructField("java_lang_GarbageCollector_LastGcInfo_memoryUsageAfterGc_init", StringType()),
-#         StructField("java_lang_GarbageCollector_LastGcInfo_memoryUsageAfterGc_max", StringType()),
-#         StructField("java_lang_GarbageCollector_LastGcInfo_memoryUsageAfterGc_used", StringType()),
-#         StructField("java_lang_GarbageCollector_LastGcInfo_memoryUsageBeforeGc_committed", StringType()),
-#         StructField("java_lang_GarbageCollector_LastGcInfo_memoryUsageBeforeGc_init", StringType()),
-#         StructField("java_lang_GarbageCollector_LastGcInfo_memoryUsageBeforeGc_max", StringType()),
-#         StructField("java_lang_GarbageCollector_LastGcInfo_memoryUsageBeforeGc_used", StringType()),
-#         StructField("java_lang_GarbageCollector_LastGcInfo_startTime", StringType()),
-#         StructField("java_lang_GarbageCollector_Valid", StringType()),
-#         StructField("java_lang_MemoryManager_Valid", StringType()),
-#         StructField("java_lang_MemoryPool_CollectionUsageThreshold", StringType()),
-#         StructField("java_lang_MemoryPool_CollectionUsageThresholdCount", StringType()),
-#         StructField("java_lang_MemoryPool_CollectionUsageThresholdExceeded", StringType()),
-#         StructField("java_lang_MemoryPool_CollectionUsageThresholdSupported", StringType()),
-#         StructField("java_lang_MemoryPool_CollectionUsage_committed", StringType()),
-#         StructField("java_lang_MemoryPool_CollectionUsage_init", StringType()),
-#         StructField("java_lang_MemoryPool_CollectionUsage_max", StringType()),
-#         StructField("java_lang_MemoryPool_CollectionUsage_used", StringType()),
-#         StructField("java_lang_MemoryPool_PeakUsage_committed", StringType()),
-#         StructField("java_lang_MemoryPool_PeakUsage_init", StringType()),
-#         StructField("java_lang_MemoryPool_PeakUsage_max", StringType()),
-#         StructField("java_lang_MemoryPool_PeakUsage_used", StringType()),
-#         StructField("java_lang_MemoryPool_UsageThreshold", StringType()),
-#         StructField("java_lang_MemoryPool_UsageThresholdCount", StringType()),
-#         StructField("java_lang_MemoryPool_UsageThresholdExceeded", StringType()),
-#         StructField("java_lang_MemoryPool_UsageThresholdSupported", StringType()),
-#         StructField("java_lang_MemoryPool_Usage_committed", StringType()),
-#         StructField("java_lang_MemoryPool_Usage_init", StringType()),
-#         StructField("java_lang_MemoryPool_Usage_max", StringType()),
-#         StructField("java_lang_MemoryPool_Usage_used", StringType()),
-#         StructField("java_lang_MemoryPool_Valid", StringType()),
-#         StructField("java_lang_Memory_HeapMemoryUsage_committed", StringType()),
-#         StructField("java_lang_Memory_HeapMemoryUsage_init", StringType()),
-#         StructField("java_lang_Memory_HeapMemoryUsage_max", StringType()),
-#         StructField("java_lang_Memory_NonHeapMemoryUsage_used", StringType()),
-#         StructField("java_lang_Memory_ObjectPendingFinalizationCount", StringType()),
-#         StructField("java_lang_Memory_Verbose", StringType()),
-#         StructField("java_lang_OperatingSystem_AvailableProcessors", StringType()),
-#         StructField("java_lang_OperatingSystem_CommittedVirtualMemorySize", StringType()),
-#         StructField("java_lang_OperatingSystem_FreePhysicalMemorySize", StringType()),
-#         StructField("java_lang_OperatingSystem_FreeSwapSpaceSize", StringType()),
-#         StructField("java_lang_OperatingSystem_ProcessCpuLoad", StringType()),
-#         StructField("java_lang_OperatingSystem_ProcessCpuTime", StringType()),
-#         StructField("java_lang_OperatingSystem_SystemCpuLoad", StringType()),
-#         StructField("java_lang_OperatingSystem_SystemLoadAverage", StringType()),
-#         StructField("java_lang_OperatingSystem_TotalPhysicalMemorySize", StringType()),
-#         StructField("java_lang_OperatingSystem_TotalSwapSpaceSize", StringType()),
-#         StructField("java_lang_Runtime_BootClassPathSupported", StringType()),
-#         StructField("java_lang_Runtime_StartTime", StringType()),
-#         StructField("java_lang_Runtime_Uptime", StringType()),
-#         StructField("java_lang_Threading_CurrentThreadCpuTime", StringType()),
-#         StructField("java_lang_Threading_CurrentThreadCpuTimeSupported", StringType()),
-#         StructField("java_lang_Threading_CurrentThreadUserTime", StringType()),
-#         StructField("java_lang_Threading_DaemonThreadCount", StringType()),
-#         StructField("java_lang_Threading_ObjectMonitorUsageSupported", StringType()),
-#         StructField("java_lang_Threading_PeakThreadCount", StringType()),
-#         StructField("java_lang_Threading_SynchronizerUsageSupported", StringType()),
-#         StructField("java_lang_Threading_ThreadAllocatedMemoryEnabled", StringType()),
-#         StructField("java_lang_Threading_ThreadAllocatedMemorySupported", StringType()),
-#         StructField("java_lang_Threading_ThreadContentionMonitoringEnabled", StringType()),
-#         StructField("java_lang_Threading_ThreadContentionMonitoringSupported", StringType()),
-#         StructField("java_lang_Threading_ThreadCount", StringType()),
-#         StructField("java_lang_Threading_ThreadCpuTimeEnabled", StringType()),
-#         StructField("java_lang_Threading_ThreadCpuTimeSupported", StringType()),
-#         StructField("java_lang_Threading_TotalStartedThreadCount", StringType()),
-#         StructField("java_nio_BufferPool_Count", StringType()),
-#         StructField("java_nio_BufferPool_MemoryUsed", StringType()),
-#         StructField("java_nio_BufferPool_TotalCapacity", StringType()),
-#         StructField("jmx_config_reload_failure_total", StringType()),
-#         StructField("jmx_config_reload_success_total", StringType()),
-#         StructField("jmx_exporter_build_info", StringType()),
-#         StructField("jmx_scrape_cached_beans", StringType()),
-#         StructField("jmx_scrape_duration_seconds", StringType()),
-#         StructField("jmx_scrape_error", StringType()),
-#         StructField("jvm_buffer_pool_capacity_bytes", StringType()),
-#         StructField("jvm_buffer_pool_used_buffers", StringType()),
-#         StructField("jvm_buffer_pool_used_bytes", StringType()),
-#         StructField("jvm_classes_loaded", StringType()),
-#         StructField("jvm_classes_loaded_total", StringType()),
-#         StructField("jvm_classes_unloaded_total", StringType()),
-#         StructField("jvm_gc_collection_seconds_count", StringType()),
-#         StructField("jvm_gc_collection_seconds_sum", StringType()),
-#         StructField("jvm_info", StringType()),
-#         StructField("jvm_memory_bytes_committed", StringType()),
-#         StructField("jvm_memory_bytes_init", StringType()),
-#         StructField("jvm_memory_bytes_max", StringType()),
-#         StructField("jvm_memory_bytes_used", StringType()),
-#         StructField("jvm_memory_pool_allocated_bytes_total", StringType()),
-#         StructField("jvm_memory_pool_bytes_committed", StringType()),
-#         StructField("jvm_memory_pool_bytes_init", StringType()),
-#         StructField("jvm_memory_pool_bytes_max", StringType()),
-#         StructField("jvm_memory_pool_bytes_used", StringType()),
-#         StructField("jvm_threads_current", StringType()),
-#         StructField("jvm_threads_daemon", StringType()),
-#         StructField("jvm_threads_deadlocked", StringType()),
-#         StructField("jvm_threads_deadlocked_monitor", StringType()),
-#         StructField("jvm_threads_peak", StringType()),
-#         StructField("jvm_threads_started_total", StringType()),
-#         StructField("jvm_threads_state", StringType()),
-#         StructField("process_cpu_seconds_total", StringType()),
-#         StructField("process_start_time_seconds", StringType()),
-#         StructField("scrape_duration_seconds", StringType()),
-#         StructField("scrape_samples_post_metric_relabeling", StringType()),
-#         StructField("scrape_samples_scraped", StringType()),
-#         StructField("scrape_series_added", StringType()),
-#         StructField("up", StringType())
-#         ])
+schema = StructType([
+    StructField("java_lang_ClassLoading_LoadedClassCount", StringType()),
+    StructField("java_lang_Compilation_TotalCompilationTime", StringType()),
+    StructField("java_lang_Memory_HeapMemoryUsage_used", StringType()),
+    StructField("java_lang_OperatingSystem_FreePhysicalMemorySize", StringType()),
+    StructField("java_lang_OperatingSystem_FreeSwapSpaceSize", StringType()),
+    StructField("java_lang_OperatingSystem_ProcessCpuLoad", StringType()),
+    StructField("java_lang_OperatingSystem_SystemCpuLoad", StringType()),
+    StructField("java_lang_Runtime_Uptime", StringType()),
+    StructField("java_lang_Threading_CurrentThreadUserTime", StringType()),
+    StructField("java_lang_Threading_TotalStartedThreadCount", StringType()),
+    StructField("jvm_memory_bytes_used", StringType()),
+    StructField("scrape_duration_seconds", StringType()),
+])
+
+centers = [[2.01750000e+03,5.62325000e+03,2.05673008e+07, 5.65267456e+08,
+ 2.04043919e+09, 6.37960093e-04, 6.41255268e-01, 2.16990225e+06,
+ 4.36718752e+08, 1.88500000e+01, 2.08694620e+07, 6.87320352e-02],
+[1.97633333e+03, 4.93009091e+03, 2.21628485e+07, 8.89927866e+08,
+ 1.70491581e+09, 5.64451044e-04, 5.09718462e-01, 1.47776488e+06,
+ 3.74526516e+08, 1.75454545e+01, 2.05545535e+07, 5.76015185e-02],
+[1.93941071e+03, 3.65105357e+03, 2.20412631e+07,1.19414652e+09,
+ 2.05431771e+09, 1.09885792e-03, 3.70528207e-01, 6.78368214e+05,
+ 1.49553571e+08, 1.68928571e+01, 2.17075150e+07, 6.47477107e-02],
+[1.98952941e+03, 4.79100000e+03, 2.22639318e+07, 1.11018601e+09,
+ 2.18873525e+09, 7.27119009e-04, 4.27478746e-01, 1.54096138e+06,
+ 4.23253673e+08, 1.79705882e+01, 2.05801294e+07, 4.56160535e-01],
+[2.05712500e+03, 5.55806250e+03, 2.07176045e+07, 1.03655270e+09,
+ 2.55286285e+09, 6.42902910e-04, 4.02331106e-01, 2.19999566e+06,
+ 4.62402338e+08, 1.93437500e+01, 2.07930172e+07, 5.81395843e-02],
+[2.21100000e+03, 6.41293333e+03, 2.16811835e+07, 1.04955822e+09,
+ 2.97510762e+09, 4.86057383e-04, 3.66010160e-01, 3.19590173e+06,
+ 6.12499999e+08, 2.41666667e+01, 2.16086595e+07, 6.01570634e-02],
+[1.94888571e+03, 5.33860000e+03, 2.00092105e+07, 1.87186135e+09,
+ 2.50836606e+09, 3.94808290e-03, 3.32638546e-01, 2.09469240e+06,
+ 4.41964284e+08, 1.68857143e+01, 2.08556846e+07, 8.86640222e-02]]
+print(centers)
 
 json_df = df.withColumn("jsonData", from_json(col("value"), schema)).select("jsondata.*")
+for col in json_df.columns:
+    json_df = json_df.withColumn(col, json_df[col].cast('float'))
 
-json_df.writeStream.format('console').outputMode('append').start().awaitTermination()
+def process_row(row):
+    row = [float(i) for i in list(row)]
+    print(row)
+
+    import math 
+    min = math.inf
+    index = math.inf
+    for j in range(len(centers)):
+        sum = 0
+        for i in range(len(centers[j])):
+            sum += (row[i]-centers[j][i])**2
+        if sum < min:
+            min = sum
+            index = j
+    print("Distance:", min, "\nCluster:", index)
+
+
+json_df.writeStream.foreach(process_row).start().awaitTermination()
+
+
